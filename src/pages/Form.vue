@@ -13,13 +13,16 @@
         class="mt-3"
         label="Phone No."
       ></input-field>
+      <file-upload-vue></file-upload-vue>
     </form>
   </div>
 </template>
 
 <script>
+import FileUploadVue from "../components/FileUpload.vue";
 export default {
   name: "Form",
+  components: { FileUploadVue },
   data: () => ({
     candidate: {
       fullName: "",
