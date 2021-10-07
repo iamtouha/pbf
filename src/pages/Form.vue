@@ -1,0 +1,33 @@
+<template>
+  <div class="container max-w-screen-md mx-auto py-2 px-4">
+    <form class="mt-4">
+      <input-field v-model="candidate.fullName" label="Full Name"></input-field>
+      <input-field
+        v-model="candidate.email"
+        class="mt-3"
+        type="email"
+        label="E-mail"
+      ></input-field>
+      <input-field
+        v-model="candidate.phone"
+        class="mt-3"
+        label="Phone No."
+      ></input-field>
+    </form>
+  </div>
+</template>
+
+<script>
+export default {
+  name: "Form",
+  data: () => ({
+    candidate: {
+      fullName: "",
+      email: "",
+      phone: "",
+    },
+  }),
+};
+</script>
+
+<style></style>
