@@ -8,14 +8,12 @@
       :required="required"
       :disabled="disabled"
       :readonly="readonly"
-      class="
-        focus:ring-indigo-500 focus:border-indigo-500
-        flex-1
-        block
-        w-full
-        rounded-md
-        border-gray-300
-      "
+      :class="[
+        error
+          ? 'focus:ring-red-500 focus:border-red-500'
+          : 'focus:ring-indigo-500 focus:border-indigo-500',
+      ]"
+      class="flex-1 block w-full rounded-md border-gray-300"
     />
   </div>
 </template>
@@ -30,6 +28,7 @@ export default {
     required: Boolean,
     disabled: Boolean,
     readonly: Boolean,
+    error: Boolean,
     modelValue: [String, Boolean, Number],
   },
   emits: ["update:modelValue"],

@@ -55,19 +55,7 @@
         </PopoverGroup>
         <div class="hidden md:flex items-center justify-end md:flex-1 lg:w-0">
           <a
-            href="#"
-            class="
-              whitespace-nowrap
-              text-base
-              font-medium
-              text-gray-500
-              hover:text-gray-900
-            "
-          >
-            Sign in
-          </a>
-          <a
-            href="#"
+            style="cursor: pointer"
             class="
               ml-8
               whitespace-nowrap
@@ -85,8 +73,9 @@
               bg-indigo-600
               hover:bg-indigo-700
             "
+            @click="isOpen = !isOpen"
           >
-            Sign up
+            Log in / Register
           </a>
         </div>
       </div>
@@ -194,16 +183,10 @@
                 bg-indigo-600
                 hover:bg-indigo-700
               "
+              @click="isOpen = !isOpen"
             >
-              Sign up
+              Log In / Register
             </a>
-            <p class="mt-6 text-center text-base font-medium text-gray-500">
-              Already created account?
-              {{ " " }}
-              <a href="#" class="text-indigo-600 hover:text-indigo-500">
-                Sign in
-              </a>
-            </p>
           </div>
         </div>
       </PopoverPanel>
@@ -211,7 +194,9 @@
   </Popover>
 </template>
 
-<script>
+<script setup>
+import { computed } from "vue";
+import { useStore } from "vuex";
 import {
   Popover,
   PopoverButton,
@@ -240,20 +225,12 @@ const routes = [
   },
 ];
 
-export default {
-  components: {
-    Popover,
-    PopoverButton,
-    PopoverGroup,
-    PopoverPanel,
-    ChevronDownIcon,
-    MenuIcon,
-    XIcon,
-  },
-  setup() {
-    return {
-      routes,
-    };
-  },
-};
+const store = useStore();
+const isOpen = computed({
+  get: () => store.state["registerDialog"],
+  set: (val) =>
+    val
+      ? store.commit("REGISTER_DIALOG_OPEN")
+      : store.commit("REGISTER_DIALOG_CLOSE"),
+});
 </script>
