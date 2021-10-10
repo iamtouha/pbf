@@ -1,6 +1,6 @@
 <template>
   <TransitionRoot appear :show="isOpen" as="template">
-    <Dialog as="div" @close="closeModal">
+    <Dialog :initial-focus="buttonRef" as="div" @close="closeModal">
       <div class="fixed inset-0 z-10 overflow-y-auto">
         <div class="min-h-screen px-4 text-center">
           <TransitionChild
@@ -12,7 +12,7 @@
             leave-from="opacity-100"
             leave-to="opacity-0"
           >
-            <DialogOverlay class="fixed inset-0" />
+            <DialogOverlay class="fixed inset-0 bg-black bg-opacity-50" />
           </TransitionChild>
 
           <span class="inline-block h-screen align-middle" aria-hidden="true">
@@ -58,6 +58,7 @@
               <div class="mt-4">
                 <button
                   type="button"
+                  :ref="buttonRef"
                   class="
                     inline-flex
                     justify-center
@@ -120,7 +121,7 @@
 </template>
 
 <script>
-import { toRef, computed } from "vue";
+import { toRef, computed, ref } from "vue";
 import {
   TransitionRoot,
   TransitionChild,
@@ -141,18 +142,19 @@ export default {
   emits: ["update:modelValue", "okay"],
   setup(props, { emit }) {
     const open = toRef(props, "modelValue");
-
+    const buttonRef = ref(null);
     const isOpen = computed({
       get() {
         return open.value;
       },
-      set(val) {
-        emit("update:modelValue", val);
+      set() {
+        emit("update:modelValue", false);
       },
     });
 
     return {
       isOpen,
+      buttonRef,
       closeModal() {
         isOpen.value = false;
       },

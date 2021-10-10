@@ -1,17 +1,18 @@
 <template>
   <nav-bar-vue />
   <router-view />
-  <popup-modal v-model="isOpen" @okay="sendLoginUrl">
+  <popup-modal v-model="isOpen" :loading="loading" @okay="sendLoginUrl">
     <template #title> Enter your email </template>
     <input-field
-      v-if="step === 0"
       v-model="email"
       class="py-6"
       placeholder="username@example.com"
     />
-    <p v-if="step === 1" class="py-6">
-      A url is sent to your email. please follow the url to log in.
-    </p>
+  </popup-modal>
+  <popup-modal v-model="emailSent" @okay="emailSent = false">
+    <template #title> Sign Up email sent</template>
+    A sign-up email is sent to your email. please follow the link to fill up the
+    form.
   </popup-modal>
 </template>
 <script setup>
@@ -24,7 +25,8 @@ import PopupModal from "./components/PopupModal.vue";
 const store = useStore();
 
 const email = ref("");
-const step = ref(0);
+const emailSent = ref(false);
+const loading = ref(false);
 
 const isOpen = computed({
   get: () => store.state["registerDialog"],
@@ -38,6 +40,10 @@ function sendLoginUrl() {
   if (!email.value.trim().length) {
     return;
   }
-  step.value = 1;
+  loading.value = true;
+  isOpen.value = false;
+  setTimeout(() => {
+    emailSent.value = true;
+  }, 500);
 }
 </script>
