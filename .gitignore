@@ -6,4 +6,5 @@ dist-ssr
 .vscode/*
 
 #firebase
+.firebase
 firebase.config.js

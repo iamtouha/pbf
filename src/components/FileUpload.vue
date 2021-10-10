@@ -75,6 +75,7 @@
           />
           <button
             id="button"
+            type="button"
             class="
               mt-2
               rounded-sm
@@ -84,7 +85,7 @@
               hover:bg-gray-300
               focus:shadow-outline focus:outline-none
             "
-            @click.prevent="() => hiddenInput.click()"
+            @click="() => hiddenInput.click()"
           >
             Upload a file
           </button>
@@ -109,189 +110,119 @@
           >
             <img
               class="mx-auto w-32"
-              src="https://user-images.githubusercontent.com/507615/54591670-ac0a0180-4a65-11e9-846c-e55ffce0fe7b.png"
+              src="../assets/no-data.png"
               alt="no data"
             />
             <span class="text-small text-gray-500">No files selected</span>
           </li>
-          <li
+          <FileThumb
             v-for="(file, i) in files"
             :key="file.name"
-            class="block p-1 w-1/2 sm:w-1/3 lg:w-1/4 h-24"
-          >
-            <article
-              tabindex="0"
-              :class="[
-                file.isImg ? 'hasImage text-transparent hover:text-white' : '',
-              ]"
-              class="
-                group
-                w-full
-                h-full
-                rounded-md
-                focus:outline-none focus:shadow-outline
-                bg-gray-100
-                cursor-pointer
-                relative
-                shadow-sm
-              "
-            >
-              <img
-                v-if="file.isImg"
-                :alt="file.name"
-                :src="file.objUrl"
-                class="
-                  img-preview
-                  w-full
-                  h-full
-                  sticky
-                  object-cover
-                  rounded-md
-                  bg-fixed
-                "
-              />
-
-              <section
-                class="
-                  flex flex-col
-                  rounded-md
-                  text-xs
-                  break-words
-                  w-full
-                  h-full
-                  z-20
-                  absolute
-                  top-0
-                  py-2
-                  px-3
-                "
-              >
-                <h1
-                  :class="[
-                    'flex-1',
-                    file.isImg ? '' : 'group-hover:text-indigo-800',
-                  ]"
-                >
-                  {{ file.name }}
-                </h1>
-                <div class="flex">
-                  <span :class="['p-1', file.isImg ? '' : 'text-indigo-800']">
-                    <i>
-                      <svg
-                        class="fill-current w-4 h-4 ml-auto pt-1"
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          d="M15 2v5h5v15h-16v-20h11zm1-2h-14v24h20v-18l-6-6z"
-                        />
-                      </svg>
-                    </i>
-                  </span>
-                  <p
-                    :class="[
-                      'p-1',
-                      'text-xs',
-                      file.isImg ? '' : 'text-gray-700',
-                    ]"
-                  >
-                    {{ Math.ceil(file.size / 1024) }}kb
-                  </p>
-                  <button
-                    class="
-                      delete
-                      ml-auto
-                      focus:outline-none
-                      hover:bg-gray-300
-                      p-1
-                      rounded-md
-                    "
-                    :class="[file.isImg ? '' : 'text-grey-800']"
-                    @click="removeFile(i)"
-                  >
-                    <svg
-                      class="pointer-events-none fill-current w-4 h-4 ml-auto"
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        class="pointer-events-none"
-                        d="M3 6l3 18h12l3-18h-18zm19-4v2h-20v-2h5.711c.9 0 1.631-1.099 1.631-2h5.316c0 .901.73 2 1.631 2h5.711z"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              </section>
-            </article>
-          </li>
+            :file="file"
+            @remove-file="removeFile(i)"
+          />
         </ul>
+        <template v-if="uploads.length">
+          <h1 class="pt-8 pb-3 font-semibold sm:text-lg text-gray-900">
+            Uploaded
+          </h1>
+          <ul id="gallery" class="flex flex-1 flex-wrap -m-1">
+            <FileThumb
+              v-for="(file, i) in uploads"
+              :key="file.name"
+              :file="file"
+              @remove-file="removeUpload(i)"
+            />
+          </ul>
+        </template>
       </section>
     </article>
   </div>
 </template>
 
-<script setup>
-import { ref, reactive } from "vue";
+<script>
+import { ref, reactive, toRefs } from "vue";
+import { useStore } from "vuex";
+import FileThumb from "./FileThumb.vue";
+export default {
+  name: "FileUpload",
+  components: { FileThumb },
+  props: { uploads: Array },
+  setup(props) {
+    const hiddenInput = ref(null);
+    const dragOver = ref(false);
+    const counter = ref(0);
+    const files = reactive([]);
+    const { uploads } = toRefs(props);
 
-const hiddenInput = ref(null);
-const dragOver = ref(false);
-const counter = ref(0);
-const files = reactive([]);
+    const hasFiles = ({ dataTransfer: { types = [] } }) =>
+      types.indexOf("Files") > -1;
 
-const hasFiles = ({ dataTransfer: { types = [] } }) =>
-  types.indexOf("Files") > -1;
+    function addFile(file) {
+      const obj = {
+        isImg: file.type.match("image.*"),
+        objUrl: URL.createObjectURL(file),
+        name: file.name,
+        size: file.size,
+      };
+      files.push(obj);
+    }
 
-function addFile(file) {
-  const obj = {
-    isImg: file.type.match("image.*"),
-    objUrl: URL.createObjectURL(file),
-    name: file.name,
-    size: file.size,
-  };
-  files.push(obj);
-}
+    function removeFile(i) {
+      const [file] = files.splice(i, 1);
+      if (!file) return;
+      URL.revokeObjectURL(file.objUrl);
+    }
 
-function removeFile(i) {
-  const [file] = files.splice(i, 1);
-  if (!file) return;
-  URL.revokeObjectURL(file.objUrl);
-}
+    function dropHandler(ev) {
+      ev.preventDefault();
+      for (const file of ev.dataTransfer.files) {
+        addFile(file);
+        dragOver.value = false;
+        counter.value = 0;
+      }
+    }
+    function dragEnterHandler(e) {
+      e.preventDefault();
+      if (!hasFiles(e)) {
+        return;
+      }
+      if (++counter.value) dragOver.value = true;
+    }
 
-function dropHandler(ev) {
-  ev.preventDefault();
-  for (const file of ev.dataTransfer.files) {
-    addFile(file);
-    dragOver.value = false;
-    counter.value = 0;
-  }
-}
-function dragEnterHandler(e) {
-  e.preventDefault();
-  if (!hasFiles(e)) {
-    return;
-  }
-  if (++counter.value) dragOver.value = true;
-}
+    function dragLeaveHandler(e) {
+      if (1 > --counter.value) dragOver.value = false;
+    }
 
-function dragLeaveHandler(e) {
-  if (1 > --counter.value) dragOver.value = false;
-}
+    function dragOverHandler(e) {
+      if (hasFiles(e)) {
+        e.preventDefault();
+      }
+    }
 
-function dragOverHandler(e) {
-  if (hasFiles(e)) {
-    e.preventDefault();
-  }
-}
-
-function selectFiles(e) {
-  for (const file of e.target.files) {
-    addFile(file);
-  }
-}
+    function selectFiles(e) {
+      for (const file of e.target.files) {
+        addFile(file);
+      }
+    }
+    function removeUpload() {
+      //
+    }
+    return {
+      hiddenInput,
+      dragOver,
+      files,
+      uploads,
+      selectFiles,
+      removeFile,
+      dropHandler,
+      dragOverHandler,
+      dragEnterHandler,
+      dragLeaveHandler,
+      removeUpload,
+    };
+  },
+};
 </script>
 
 <style>
