@@ -55,7 +55,7 @@
         </PopoverGroup>
         <div class="hidden md:flex items-center justify-end md:flex-1 lg:w-0">
           <button
-            v-if="!isSignedIn"
+            v-if="!user"
             :disabled="loading"
             style="cursor: pointer"
             class="
@@ -185,7 +185,7 @@
           </div>
           <div class="pb-6 px-4">
             <button
-              v-if="!isSignedIn"
+              v-if="!user"
               :disabled="loading"
               class="
                 w-full
@@ -276,8 +276,7 @@ const isOpen = computed({
       : store.commit("REGISTER_DIALOG_CLOSE"),
 });
 
-const user = auth.currentUser;
-const isSignedIn = computed(() => store.state.signedIn);
+const user = computed(() => store.state.user);
 const props = defineProps({ loading: Boolean });
 const { loading } = toRefs(props);
 

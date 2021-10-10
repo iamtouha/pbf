@@ -10,7 +10,7 @@ import "./assets/style.css";
 let app;
 
 onAuthStateChanged(auth, (user) => {
-  user ? store.commit("SIGNED_IN") : store.commit("SIGNED_OUT");
+  user ? store.commit("SIGNED_IN", user) : store.commit("SIGNED_OUT");
   if (!app) {
     app = createApp(App)
       .component("InputField", InputField)
