@@ -59,6 +59,7 @@
                 <button
                   type="button"
                   :ref="buttonRef"
+                  :disabled="loading"
                   class="
                     inline-flex
                     justify-center
@@ -107,6 +108,7 @@
                     focus:outline-none
                     focus-visible:ring-2 focus-visible:ring-offset-2
                   "
+                  :disabled="loading"
                   @click="closeModal"
                 >
                   Cancel

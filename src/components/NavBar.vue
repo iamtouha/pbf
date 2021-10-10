@@ -54,7 +54,9 @@
           </router-link>
         </PopoverGroup>
         <div class="hidden md:flex items-center justify-end md:flex-1 lg:w-0">
-          <a
+          <button
+            v-if="!isSignedIn"
+            :disabled="loading"
             style="cursor: pointer"
             class="
               ml-8
@@ -75,8 +77,25 @@
             "
             @click="isOpen = !isOpen"
           >
-            Log in / Register
-          </a>
+            <div
+              v-if="loading"
+              class="
+                animate-spin
+                rounded-full
+                my-0.5
+                h-4
+                w-4
+                border-t-2 border-b-2 border-purple-100
+              "
+            ></div>
+            <span v-else>Log In / Register</span>
+          </button>
+          <template v-else>
+            <a>{{ user.email }}</a>
+            <button class="text-indigo-600 mx-2" @click="signOut">
+              Sign Out
+            </button>
+          </template>
         </div>
       </div>
     </div>
@@ -165,8 +184,9 @@
             </div>
           </div>
           <div class="pb-6 px-4">
-            <a
-              href="#"
+            <button
+              v-if="!isSignedIn"
+              :disabled="loading"
               class="
                 w-full
                 flex
@@ -185,8 +205,28 @@
               "
               @click="isOpen = !isOpen"
             >
-              Log In / Register
-            </a>
+              <div
+                v-if="loading"
+                class="
+                  animate-spin
+                  rounded-full
+                  my-0.5
+                  h-4
+                  w-4
+                  border-t-2 border-b-2 border-purple-100
+                "
+              ></div>
+              <span v-else>Log In / Register</span>
+            </button>
+            <template v-else>
+              <a class="block pt-2 mx-auto max-w-min">{{ user.email }}</a>
+              <button
+                class="text-indigo-600 mx-auto block mt-4"
+                @click="signOut"
+              >
+                Sign Out
+              </button>
+            </template>
           </div>
         </div>
       </PopoverPanel>
@@ -195,8 +235,9 @@
 </template>
 
 <script setup>
-import { computed } from "vue";
+import { computed, defineProps, reactive, toRefs } from "vue";
 import { useStore } from "vuex";
+import { auth } from "../firebase";
 import {
   Popover,
   PopoverButton,
@@ -210,6 +251,7 @@ import {
   XIcon,
 } from "@heroicons/vue/outline";
 import { ChevronDownIcon } from "@heroicons/vue/solid";
+import { useRoute, useRouter } from "vue-router";
 
 const routes = [
   {
@@ -233,4 +275,19 @@ const isOpen = computed({
       ? store.commit("REGISTER_DIALOG_OPEN")
       : store.commit("REGISTER_DIALOG_CLOSE"),
 });
+
+const user = auth.currentUser;
+const isSignedIn = computed(() => store.state.signedIn);
+const props = defineProps({ loading: Boolean });
+const { loading } = toRefs(props);
+
+const route = useRoute();
+const router = useRouter();
+function signOut() {
+  auth.signOut().then(() => {
+    if (route.meta.auth) {
+      router.push("/");
+    }
+  });
+}
 </script>

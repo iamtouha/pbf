@@ -14,6 +14,18 @@
         label="Phone No."
       ></input-field>
       <file-upload-vue></file-upload-vue>
+      <button
+        class="
+          rounded-md
+          text-white
+          bg-indigo-500
+          hover:bg-indigo-600
+          py-2
+          px-4
+        "
+      >
+        Save
+      </button>
     </form>
   </div>
 </template>
@@ -32,5 +44,3 @@ export default {
   }),
 };
 </script>
-
-<style></style>
