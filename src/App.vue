@@ -1,7 +1,12 @@
 <template>
   <nav-bar-vue :loading="signingIn" />
   <router-view />
-  <popup-modal v-model="isOpen" :loading="loading" @okay="sendLoginUrl">
+  <popup-modal
+    v-model="isOpen"
+    presistant
+    :loading="loading"
+    @okay="sendLoginUrl"
+  >
     <template #title> Enter your email </template>
     <input-field
       v-model="email"
@@ -22,7 +27,12 @@
     A sign-up email is sent to your email. please follow the link to fill up the
     form.
   </popup-modal>
-  <popup-modal v-if="!user" v-model="signInEmailModal" @okay="emailEntered">
+  <popup-modal
+    v-if="!user"
+    presistant
+    v-model="signInEmailModal"
+    @okay="emailEntered"
+  >
     <template #title> Re-Enter email for verification</template>
     <input-field
       v-model="signinEmail"
@@ -69,6 +79,7 @@ const email = ref("");
 const emailSent = ref(false);
 const loading = ref(false);
 const error = ref("");
+
 function sendLoginUrl() {
   if (!email.value.trim().length) {
     error.value = "insert an email";
@@ -83,7 +94,7 @@ function sendLoginUrl() {
     .then(() => {
       localStorage.setItem("email", email.value);
       isOpen.value = false;
-
+      email.value = "";
       setTimeout(() => {
         emailSent.value = true;
       }, 500);
@@ -116,7 +127,7 @@ const router = useRouter();
 function signIn(email) {
   signingIn.value = true;
   signInWithEmailLink(auth, email, window.location.href)
-    .then((auth) => {
+    .then(() => {
       router.push("/form");
     })
     .catch((err) => {
@@ -128,6 +139,7 @@ function signIn(email) {
 function emailEntered() {
   if (signinEmail.value.trim().length) {
     signIn(signinEmail.value);
+    signinEmail.value = "";
     signInEmailModal.value = false;
   }
 }

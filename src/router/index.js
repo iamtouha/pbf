@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import { auth } from "../firebase";
+import store from "../store";
 import Homepage from "../pages/Home.vue";
 
 const router = createRouter({
@@ -25,6 +26,7 @@ router.beforeEach((to, from, next) => {
     return next();
   }
   if (to.meta.auth && !user) {
+    store.commit("REGISTER_DIALOG_OPEN");
     return next("/");
   }
   return next();

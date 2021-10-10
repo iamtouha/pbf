@@ -12,7 +12,17 @@
             leave-from="opacity-100"
             leave-to="opacity-0"
           >
-            <DialogOverlay class="fixed inset-0 bg-black bg-opacity-50" />
+            <div
+              v-if="presistant"
+              class="fixed inset-0 bg-black bg-opacity-50"
+              @click.stop
+            />
+
+            <DialogOverlay
+              v-else
+              class="fixed inset-0 bg-black bg-opacity-50"
+              @click.stop
+            />
           </TransitionChild>
 
           <span class="inline-block h-screen align-middle" aria-hidden="true">
@@ -140,7 +150,7 @@ export default {
     DialogOverlay,
     DialogTitle,
   },
-  props: { modelValue: Boolean, loading: Boolean },
+  props: { modelValue: Boolean, loading: Boolean, presistant: Boolean },
   emits: ["update:modelValue", "okay"],
   setup(props, { emit }) {
     const open = toRef(props, "modelValue");
