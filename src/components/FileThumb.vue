@@ -51,20 +51,7 @@
           {{ file.name }}
         </h1>
         <div class="flex">
-          <span :class="['p-1', file.isImg ? '' : 'text-indigo-800']">
-            <i>
-              <svg
-                class="fill-current w-4 h-4 ml-auto pt-1"
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-              >
-                <path d="M15 2v5h5v15h-16v-20h11zm1-2h-14v24h20v-18l-6-6z" />
-              </svg>
-            </i>
-          </span>
-          <p :class="['p-1', 'text-xs', file.isImg ? '' : 'text-gray-700']">
+          <p :class="['py-1', 'text-xs', file.isImg ? '' : 'text-gray-700']">
             {{ Math.ceil(file.size / 1024) }}kb
           </p>
           <button
