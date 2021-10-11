@@ -2,15 +2,21 @@
   <div class="container max-w-screen-md mx-auto p-4">
     <Alert v-if="isOffline" type="error" message="you are currently offline" />
     <Alert v-if="error" type="error" :message="error" />
+    <Alert v-if="success" type="success" :message="success" />
     <form @submit.prevent="submitForm">
+      <p class="my-4 py-4 pl-4 border-l-4 border-indigo-600 bg-gray-100">
+        Your responses will be saved Automatically
+      </p>
       <input-field
-        v-model="entry.name"
+        v-model.trim="entry.name"
+        :disabled="!loaded"
         required
         label="Full Name"
       ></input-field>
 
       <input-field
-        v-model="entry.phone"
+        v-model.trim="entry.phone"
+        :disabled="email && !loaded"
         class="mt-3"
         label="Phone No."
         required
@@ -19,32 +25,37 @@
       <file-upload-vue
         ref="fileUploader"
         :uploads="dbEntry.files"
-      ></file-upload-vue>
-      <button
-        class="
-          rounded-md
-          text-white
-          bg-indigo-500
-          hover:bg-indigo-600
-          py-2
-          px-4
+        :disabled="email && !loaded"
+        :loading="uploading"
+        :removing="removingId"
+        @remove-file="removeFile"
+        @upload-file="uploadFile"
+        @limit-end="
+          () => {
+            error = 'You can upload max. 5 files. remove existing file(s).';
+          }
         "
-        :class="[loading ? 'animate-pulse' : '']"
-        :disabled="loading"
-        type="submit"
+        @too-large="() => (error = 'file size cannot exceed 1MB.')"
       >
-        Submit
-      </button>
+      </file-upload-vue>
     </form>
   </div>
 </template>
 
 <script>
-import { doc, setDoc, getDoc, collection } from "firebase/firestore";
+import debounce from "lodash.debounce";
+import {
+  doc,
+  setDoc,
+  onSnapshot,
+  updateDoc,
+  deleteField,
+} from "firebase/firestore";
 import {
   ref as storageRef,
   uploadBytes,
   getDownloadURL,
+  deleteObject,
 } from "firebase/storage";
 import { db, storage } from "../firebase";
 
@@ -56,19 +67,49 @@ export default {
 
   data: () => ({
     loading: false,
+    uploading: false,
     isOffline: false,
+    removingId: "",
     error: "",
+    success: "",
     entry: {
       name: "",
       phone: "",
     },
+    loaded: false,
     dbEntry: {
-      files: [],
+      files: {},
     },
+    unsubEntry: null,
   }),
   computed: {
     email() {
       return this.$store.state.user?.email;
+    },
+  },
+  watch: {
+    success(val) {
+      if (val.length) {
+        setTimeout(() => {
+          this.success = "";
+        }, 5000);
+      }
+    },
+    error(val) {
+      if (val.length) {
+        setTimeout(() => {
+          this.error = false;
+        }, 5000);
+      }
+    },
+    email(newVal) {
+      if (newVal && !this.loaded) {
+        this.getInputs();
+      }
+    },
+    entry: {
+      deep: true,
+      handler: "saveEntry",
     },
   },
   created() {
@@ -81,6 +122,9 @@ export default {
   beforeUnmount() {
     window.removeEventListener("online", this.changedConnection);
     window.removeEventListener("offline", this.changedConnection);
+    if (this.unsubEntry) {
+      this.unsubEntry();
+    }
   },
   methods: {
     changedConnection(e) {
@@ -91,47 +135,86 @@ export default {
         return (this.isOffline = false);
       }
     },
-    submitForm() {
+
+    saveEntry: debounce(function (val) {
       if (!this.email) {
         this.$store.commit("REGISTER_DIALOG_OPEN");
         return;
       }
-      console.log(this.$refs.fileUploader.files);
-    },
+
+      const { name, phone } = val;
+      if (name === this.dbEntry.name && phone === this.dbEntry.phone) {
+        return;
+      }
+      const docRef = doc(db, "responds", this.email);
+      updateDoc(docRef, { name, phone })
+        .then(() => console.log("saved " + new Date().toLocaleString()))
+        .catch((err) => (this.error = err.message));
+    }, 1000),
     getInputs() {
       if (!this.email) return;
-      this.loading = true;
       const docRef = doc(db, "responds", this.email);
-      getDoc(docRef)
-        .then((doc) => {
-          this.error = "";
-          if (doc.exists()) {
-            const { name, phone } = doc.data();
-            this.entry = { name, phone };
-            this.dbEntry = doc.data();
+      this.unsubEntry = onSnapshot(
+        docRef,
+        (docSnap) => {
+          if (docSnap.exists()) {
+            const { name, phone } = docSnap.data();
+            this.dbEntry = docSnap.data();
+            if (!this.loaded) {
+              this.entry = { name, phone };
+            }
           }
-        })
+          this.loaded = true;
+        },
+        (err) => (this.error = err.message)
+      );
+    },
+    async uploadFile(file) {
+      if (!this.email) {
+        this.$store.commit("REGISTER_DIALOG_OPEN");
+        return;
+      }
+      try {
+        this.uploading = true;
+        const fileRef = storageRef(
+          storage,
+          `/uploads/${this.email}/${file.id}.${file.name?.split(".").pop()}`
+        );
+        const docRef = doc(db, "responds", this.email);
+        await uploadBytes(fileRef, file.data);
+        const url = await getDownloadURL(fileRef);
+        const fileDoc = {
+          id: file.id,
+          name: file.name,
+          size: file.size,
+          url,
+          isImg: file.isImg,
+          storagePath: fileRef.fullPath,
+        };
+        await updateDoc(docRef, {
+          [`files.${fileDoc.id}`]: fileDoc,
+        });
+      } catch (error) {
+        this.error = error.message;
+      } finally {
+        this.uploading = false;
+      }
+    },
+    removeFile(key) {
+      this.removingId = key;
+      const file = this.dbEntry.files[key];
+      const fileRef = storageRef(storage, file.storagePath);
+      const docRef = doc(db, "responds", this.email);
+      Promise.all([
+        updateDoc(docRef, {
+          [`files.${key}`]: deleteField(),
+        }),
+        deleteObject(fileRef),
+      ])
+        .then()
         .catch((err) => {
           this.error = err.message;
-        })
-        .finally(() => {
-          this.loading = false;
         });
-    },
-    saveRespond() {},
-    async uploadFile(file) {
-      const uploads = storageRef(storage, "/uploads/" + this.email);
-      const fileRef = storageRef(uploads, file.name);
-      const [res, url] = await Promise.all([
-        uploadBytes(fileRef, file.objectUrl),
-        getDownloadURL(fileRef),
-      ]);
-      return {
-        name: file.name,
-        size: file.size,
-        url,
-        isImg: file.isImg,
-      };
     },
   },
 };

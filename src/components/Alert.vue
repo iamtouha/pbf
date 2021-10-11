@@ -7,7 +7,6 @@
           : 'text-green-600 bg-green-50',
       ]"
       class="
-        max-w-min
         mx-auto
         flex
         items-center

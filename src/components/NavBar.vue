@@ -284,6 +284,7 @@ const route = useRoute();
 const router = useRouter();
 function signOut() {
   auth.signOut().then(() => {
+    localStorage.removeItem("email");
     if (route.meta.auth) {
       router.push("/");
     }

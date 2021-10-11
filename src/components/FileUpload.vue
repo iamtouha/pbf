@@ -64,18 +64,18 @@
               justify-center
             "
           >
-            <span>Drag and drop your</span>&nbsp;<span>files anywhere or</span>
+            <span>Drag and drop your</span>&nbsp;<span>file anywhere or</span>
           </p>
           <input
             ref="hiddenInput"
             type="file"
-            multiple
             class="hidden"
             @change="selectFiles"
           />
           <button
             id="button"
             type="button"
+            :disabled="disabled"
             class="
               mt-2
               rounded-sm
@@ -83,21 +83,22 @@
               py-1
               bg-gray-200
               hover:bg-gray-300
+              disabled:bg-gray-300 disabled:text-gray-600
               focus:shadow-outline focus:outline-none
             "
             @click="() => hiddenInput.click()"
           >
-            Upload a file
+            {{ loading ? "Uploading..." : "Upload a file" }}
           </button>
         </header>
 
         <h1 class="pt-8 pb-3 font-semibold sm:text-lg text-gray-900">
-          To Upload
+          Uploaded
         </h1>
 
         <ul id="gallery" class="flex flex-1 flex-wrap -m-1">
           <li
-            v-if="!files.length"
+            v-if="noUpload"
             id="empty"
             class="
               h-full
@@ -113,61 +114,63 @@
               src="../assets/no-data.png"
               alt="no data"
             />
-            <span class="text-small text-gray-500">No files selected</span>
+            <span class="text-small text-gray-500">No file uploaded</span>
           </li>
           <FileThumb
-            v-for="(file, i) in files"
-            :key="file.name"
-            :file="file"
-            @remove-file="removeFile(i)"
+            v-for="(item, key) in uploads"
+            :key="key"
+            :file="item"
+            :disabled="removing === key"
+            @remove-file="$emit('remove-file', key)"
           />
         </ul>
-        <template v-if="uploads.length">
-          <h1 class="pt-8 pb-3 font-semibold sm:text-lg text-gray-900">
-            Uploaded
-          </h1>
-          <ul id="gallery" class="flex flex-1 flex-wrap -m-1">
-            <FileThumb
-              v-for="(file, i) in uploads"
-              :key="file.name"
-              :file="file"
-              @remove-file="removeUpload(i)"
-            />
-          </ul>
-        </template>
       </section>
     </article>
   </div>
 </template>
 
 <script>
-import { ref, reactive, toRefs } from "vue";
+import { ref, reactive, toRefs, computed } from "vue";
+import isEmpty from "lodash.isempty";
 import { nanoid } from "nanoid";
-import { useStore } from "vuex";
 import FileThumb from "./FileThumb.vue";
 export default {
   name: "FileUpload",
   components: { FileThumb },
-  props: { uploads: Array },
-  setup(props) {
+  props: {
+    uploads: Object,
+    removing: String,
+    disabled: Boolean,
+    loading: Boolean,
+  },
+  emits: ["remove-file", "upload-file", "limit-end", "too-large"],
+  setup(props, { emit }) {
     const hiddenInput = ref(null);
     const dragOver = ref(false);
     const counter = ref(0);
     const files = reactive([]);
     const { uploads } = toRefs(props);
-
+    const { disabled } = toRefs(props);
+    const noUpload = computed(() => isEmpty(uploads.value));
     const hasFiles = ({ dataTransfer: { types = [] } }) =>
       types.indexOf("Files") > -1;
 
     function addFile(file) {
+      if (disabled.value) return;
+      if (file.size / 1024 > 1024) {
+        return emit("too-large");
+      }
       const obj = {
         id: nanoid(),
         isImg: file.type.match("image.*"),
-        objUrl: URL.createObjectURL(file),
+        data: file,
         name: file.name,
         size: file.size,
       };
-      files.push(obj);
+      if (Object.keys(uploads.value || {}).length >= 5) {
+        return emit("limit-end");
+      }
+      emit("upload-file", obj);
     }
 
     function removeFile(i) {
@@ -207,21 +210,27 @@ export default {
         addFile(file);
       }
     }
-    function removeUpload() {
-      //
+
+    function flush() {
+      files.forEach((file) => {
+        URL.revokeObjectURL(file.objUrl);
+      });
+      files.length = 0;
     }
     return {
       hiddenInput,
       dragOver,
       files,
       uploads,
+      disabled,
+      noUpload,
       selectFiles,
       removeFile,
       dropHandler,
       dragOverHandler,
       dragEnterHandler,
       dragLeaveHandler,
-      removeUpload,
+      flush,
     };
   },
 };

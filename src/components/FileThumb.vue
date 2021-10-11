@@ -68,11 +68,13 @@
             {{ Math.ceil(file.size / 1024) }}kb
           </p>
           <button
+            :disabled="disabled"
             class="
               delete
               ml-auto
               focus:outline-none
               hover:bg-gray-300
+              disabled:bg-gray-300 disabled:text-gray-600
               p-1
               rounded-md
             "
@@ -108,6 +110,7 @@ export default {
       type: Object,
       required: true,
     },
+    disabled: Boolean,
   },
 };
 </script>
