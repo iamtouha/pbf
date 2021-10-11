@@ -44,13 +44,7 @@
 
 <script>
 import debounce from "lodash.debounce";
-import {
-  doc,
-  setDoc,
-  onSnapshot,
-  updateDoc,
-  deleteField,
-} from "firebase/firestore";
+import { doc, setDoc, onSnapshot, deleteField } from "firebase/firestore";
 import {
   ref as storageRef,
   uploadBytes,
@@ -147,10 +141,10 @@ export default {
         return;
       }
       const docRef = doc(db, "responds", this.email);
-      updateDoc(docRef, { name, phone })
+      setDoc(docRef, { name, phone }, { merge: true })
         .then(() => console.log("saved " + new Date().toLocaleString()))
         .catch((err) => (this.error = err.message));
-    }, 1000),
+    }, 500),
     getInputs() {
       if (!this.email) return;
       const docRef = doc(db, "responds", this.email);
@@ -191,9 +185,11 @@ export default {
           isImg: file.isImg,
           storagePath: fileRef.fullPath,
         };
-        await updateDoc(docRef, {
-          [`files.${fileDoc.id}`]: fileDoc,
-        });
+        await setDoc(
+          docRef,
+          { [`files.${fileDoc.id}`]: fileDoc },
+          { merge: true }
+        );
       } catch (error) {
         this.error = error.message;
       } finally {
