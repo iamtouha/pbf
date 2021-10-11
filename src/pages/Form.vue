@@ -9,7 +9,7 @@
       </p>
       <input-field
         v-model.trim="entry.name"
-        :disabled="!loaded"
+        :disabled="email && !loaded"
         required
         label="Full Name"
       ></input-field>
