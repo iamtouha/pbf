@@ -18,7 +18,7 @@
       <img
         v-if="file.isImg"
         :alt="file.name"
-        :src="file.objUrl"
+        :src="file.objUrl || file.url"
         class="
           img-preview
           w-full

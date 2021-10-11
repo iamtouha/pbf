@@ -142,6 +142,7 @@
 
 <script>
 import { ref, reactive, toRefs } from "vue";
+import { nanoid } from "nanoid";
 import { useStore } from "vuex";
 import FileThumb from "./FileThumb.vue";
 export default {
@@ -160,6 +161,7 @@ export default {
 
     function addFile(file) {
       const obj = {
+        id: nanoid(),
         isImg: file.type.match("image.*"),
         objUrl: URL.createObjectURL(file),
         name: file.name,
