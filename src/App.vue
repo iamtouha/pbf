@@ -55,7 +55,7 @@
 <script setup>
 import { computed, ref, onMounted } from "vue";
 import { useStore } from "vuex";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import {
   sendSignInLinkToEmail,
   isSignInWithEmailLink,
@@ -124,11 +124,12 @@ onMounted(checkForSignIn);
 
 const signingIn = ref(false);
 const router = useRouter();
+const route = useRoute();
 function signIn(email) {
   signingIn.value = true;
   signInWithEmailLink(auth, email, window.location.href)
     .then(() => {
-      router.push("/form");
+      if (!route.name !== "form") router.push("/form");
     })
     .catch((err) => {
       signInError.value = err.message;

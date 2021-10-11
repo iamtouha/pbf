@@ -1,6 +1,8 @@
 <template>
-  <div class="container max-w-screen-md mx-auto py-2 px-4">
-    <form @submit.prevent="submitForm" class="mt-4">
+  <div class="container max-w-screen-md mx-auto p-4">
+    <Alert v-if="isOffline" type="error" message="you are currently offline" />
+    <Alert v-if="error" type="error" :message="error" />
+    <form @submit.prevent="submitForm">
       <input-field
         v-model="entry.name"
         required
@@ -18,7 +20,6 @@
         ref="fileUploader"
         :uploads="dbEntry.files"
       ></file-upload-vue>
-      <p v-if="error" class="text-red-600">{{ error }}</p>
       <button
         class="
           rounded-md
@@ -39,15 +40,23 @@
 </template>
 
 <script>
-import { doc, setDoc, getDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import { doc, setDoc, getDoc, collection } from "firebase/firestore";
+import {
+  ref as storageRef,
+  uploadBytes,
+  getDownloadURL,
+} from "firebase/storage";
+import { db, storage } from "../firebase";
 
 import FileUploadVue from "../components/FileUpload.vue";
+import Alert from "../components/Alert.vue";
 export default {
   name: "Form",
-  components: { FileUploadVue },
+  components: { FileUploadVue, Alert },
+
   data: () => ({
     loading: false,
+    isOffline: false,
     error: "",
     entry: {
       name: "",
@@ -65,16 +74,38 @@ export default {
   created() {
     this.getInputs();
   },
+  mounted() {
+    window.addEventListener("online", this.changedConnection);
+    window.addEventListener("offline", this.changedConnection);
+  },
+  beforeUnmount() {
+    window.removeEventListener("online", this.changedConnection);
+    window.removeEventListener("offline", this.changedConnection);
+  },
   methods: {
+    changedConnection(e) {
+      if (e.type === "offline") {
+        return (this.isOffline = true);
+      }
+      if (e.type === "online") {
+        return (this.isOffline = false);
+      }
+    },
     submitForm() {
+      if (!this.email) {
+        this.$store.commit("REGISTER_DIALOG_OPEN");
+        return;
+      }
       console.log(this.$refs.fileUploader.files);
     },
     getInputs() {
+      if (!this.email) return;
       this.loading = true;
-      const docRef = doc("responds", this.email);
+      const docRef = doc(db, "responds", this.email);
       getDoc(docRef)
         .then((doc) => {
-          if (doc.exists) {
+          this.error = "";
+          if (doc.exists()) {
             const { name, phone } = doc.data();
             this.entry = { name, phone };
             this.dbEntry = doc.data();
@@ -88,6 +119,20 @@ export default {
         });
     },
     saveRespond() {},
+    async uploadFile(file) {
+      const uploads = storageRef(storage, "/uploads/" + this.email);
+      const fileRef = storageRef(uploads, file.name);
+      const [res, url] = await Promise.all([
+        uploadBytes(fileRef, file.objectUrl),
+        getDownloadURL(fileRef),
+      ]);
+      return {
+        name: file.name,
+        size: file.size,
+        url,
+        isImg: file.isImg,
+      };
+    },
   },
 };
 </script>
