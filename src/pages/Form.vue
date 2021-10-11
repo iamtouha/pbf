@@ -44,7 +44,13 @@
 
 <script>
 import debounce from "lodash.debounce";
-import { doc, setDoc, onSnapshot, deleteField } from "firebase/firestore";
+import {
+  doc,
+  setDoc,
+  updateDoc,
+  onSnapshot,
+  deleteField,
+} from "firebase/firestore";
 import {
   ref as storageRef,
   uploadBytes,
@@ -103,7 +109,13 @@ export default {
     },
     entry: {
       deep: true,
-      handler: "saveEntry",
+      handler(val) {
+        if (!this.email) {
+          this.$store.commit("REGISTER_DIALOG_OPEN");
+          return;
+        }
+        this.saveEntry(val);
+      },
     },
   },
   created() {
@@ -131,11 +143,6 @@ export default {
     },
 
     saveEntry: debounce(function (val) {
-      if (!this.email) {
-        this.$store.commit("REGISTER_DIALOG_OPEN");
-        return;
-      }
-
       const { name, phone } = val;
       if (name === this.dbEntry.name && phone === this.dbEntry.phone) {
         return;
@@ -144,7 +151,7 @@ export default {
       setDoc(docRef, { name, phone }, { merge: true })
         .then(() => console.log("saved " + new Date().toLocaleString()))
         .catch((err) => (this.error = err.message));
-    }, 500),
+    }, 1000),
     getInputs() {
       if (!this.email) return;
       const docRef = doc(db, "responds", this.email);
@@ -187,10 +194,12 @@ export default {
         };
         await setDoc(
           docRef,
-          { [`files.${fileDoc.id}`]: fileDoc },
+          { files: { [fileDoc.id]: fileDoc } },
           { merge: true }
         );
+        console.log(url);
       } catch (error) {
+        console.log(error);
         this.error = error.message;
       } finally {
         this.uploading = false;
